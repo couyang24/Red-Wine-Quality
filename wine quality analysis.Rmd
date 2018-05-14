@@ -189,7 +189,7 @@ rpart_result <- predict(rpart_model, newdata = valid[,!colnames(valid) %in% c("q
 
 confusionMatrix(valid$quality,rpart_result)
 varImp(rpart_model) %>% kable()
-varImpPlot(rpart_model)
+
 rm(rpart_model, rpart_result)
 ```
 
