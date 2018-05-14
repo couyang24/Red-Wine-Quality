@@ -1,25 +1,109 @@
-library(tidyverse)
-library(skimr)
-library(GGally)
-library(corrplot)
-library(plotly)
-library(viridis)
-library(caret)
-library(randomForest)
-library(e1071)
-library(rpart)
-library(rattle)
-library(xgboost)
-library(h2o)
+---
+title: 'Wine Quality Analysis'
+author: "Chengran (Owen) Ouyang"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    number_sections: true
+    fig_caption: true
+    toc: true
+    fig_width: 7
+    fig_height: 4.5
+    theme: cosmo
+    highlight: tango
+    code_folding: hide
+---
+******
+# Introduction
+******
 
+**Objectives:** The goal of this kernel is to find the best approach to identify the quality of the wine. We will go through the basic EDA and visually identify the quality via a 3D interactive plot. 
+Moreover, I also applied multiple ML models to make the prediction respectively. Each of the models would have its own strength.
+
+
+**Rpart** can give you a nice decision tree plot so you can see the variable more intuitively.
+
+
+**Random Forest** is the model most of the time you can run directly with minimum amount of tuning.
+
+
+**xgboost** is expected to produce the best result but needs a bit of tuning.
+
+
+**svm** is an alternative approach and usually give a less correlated result.
+
+
+**h2o - deeplearning** is one of the easiest tool to apply deep learning model. I could potentially use keras but due to the size and the structure of data. I don't believe deep learning model would outperform xgboost in this case.
+
+
+Confusion Matrix is used to evaluate the results.
+
+
+If you have any question, please leave a comment and if you like the kernel, please give me an upvote~ Thanks!
+
+
+******
+# Basic Set up{.tabset .tabset-fade .tabset-pills}
+******
+
+
+******
+## Load Packages
+******
+
+```{r results='hide', message=FALSE, warning=FALSE}
+if(!require(pacman)) install.packages(pacman)
+pacman::p_load(tidyverse, skimr, GGally, corrplot, plotly, viridis, caret, randomForest, e1071, rpart, rattle, xgboost, h2o)
+```
+
+******
+## Load Dataset
+******
+
+```{r results='hide', message=FALSE, warning=FALSE}
 wine <- read_csv("winequality-red.csv")
+```
 
+******
+# EDA{.tabset .tabset-fade .tabset-pills}
+******
+
+******
+## First Glimpse via skim
+******
+
+```{r results='hide', message=FALSE, warning=FALSE}
 wine %>% skim() %>% kable()
+```
 
+******
+## Second Glimpse via Corrplot
+******
+
+
+```{r results='hide', message=FALSE, warning=FALSE}
+wine %>% cor() %>% corrplot.mixed(upper = "ellipse", tl.cex=.8, tl.pos = 'lt', number.cex = .8)
+```
+
+******
+# Preprocess
+******
+
+
+```{r results='hide', message=FALSE, warning=FALSE}
 colnames(wine) <- wine %>% colnames() %>% str_replace_all(" ","_")
+wine$quality <- as.factor(wine$quality)
+```
+
+******
+# GGally - ggpairs
+******
+
+I have had a quick look and found the following variables: residual\_sugar, free\_sulfur\_dioxide, total\_sulfur\_dioxide, and chlorides do not have significant different across different quality. 
+Therefore, these variables are not included in the ggpairs model. Further, I found volatile_acidity, sulphates, and alcohol have more significate different across different quality based on the graph below. 
 
 
-
+```{r results='hide', message=FALSE, warning=FALSE}
 wine %>% 
   mutate(quality = as.factor(quality)) %>% 
   select(-c(residual_sugar, free_sulfur_dioxide, total_sulfur_dioxide, chlorides)) %>% 
@@ -28,11 +112,13 @@ wine %>%
           lower=list(continuous="points"),
           upper=list(continuous="blank"),
           axisLabels="none", switch="both")
+```
 
-wine %>% cor() %>% corrplot.mixed(upper = "ellipse", tl.cex=.8, tl.pos = 'lt', number.cex = .8)
+******
+# Ployly 3D Interactive Graph
+******
 
-wine$quality <- as.factor(wine$quality)
-
+```{r results='hide', message=FALSE, warning=FALSE}
 wine %>% 
   plot_ly(x=~alcohol,y=~volatile_acidity,z= ~sulphates, color=~quality, hoverinfo = 'text', colors = viridis(3),
           text = ~paste('Quality:', quality,
@@ -40,20 +126,31 @@ wine %>%
                         '<br>Volatile Acidity:', volatile_acidity,
                         '<br>sulphates:', sulphates)) %>% 
   add_markers(opacity = 0.8) %>%
-  layout(title = "3D Wine",
+  layout(title = "3D Wine Quality",
          annotations=list(yref='paper',xref="paper",y=1.05,x=1.1, text="quality",showarrow=F),
          scene = list(xaxis = list(title = 'Alcohol'),
                       yaxis = list(title = 'Volatile Acidity'),
                       zaxis = list(title = 'sulphates')))
+```
 
+******
+# Cross Validation Setup
+******
 
+```{r results='hide', message=FALSE, warning=FALSE}
 set.seed(1)
 inTrain <- createDataPartition(wine$quality, p=.9, list = F)
 
 train <- wine[inTrain,]
 valid <- wine[-inTrain,]
 rm(inTrain)
+```
 
+******
+# Decision Tree via rpart
+******
+
+```{r results='hide', message=FALSE, warning=FALSE}
 # rpart
 set.seed(1)
 rpart_model <- rpart(quality~alcohol+volatile_acidity+citric_acid+
@@ -65,7 +162,13 @@ rpart_result <- predict(rpart_model, newdata = valid[,!colnames(valid) %in% c("q
 
 confusionMatrix(valid$quality,rpart_result)
 rm(rpart_model, rpart_result)
+```
 
+******
+# Random Forest
+******
+
+```{r results='hide', message=FALSE, warning=FALSE}
 # randomforest
 set.seed(1)
 rf_model <- randomForest(quality~alcohol+volatile_acidity+citric_acid+
@@ -74,7 +177,14 @@ rf_result <- predict(rf_model, newdata = valid[,!colnames(valid) %in% c("quality
 
 confusionMatrix(valid$quality,rf_result)
 rm(rf_model, rf_result)
+```
 
+
+******
+# SVM
+******
+
+```{r results='hide', message=FALSE, warning=FALSE}
 # svm
 set.seed(1)
 svm_model <- svm(quality~alcohol+volatile_acidity+citric_acid+
@@ -83,7 +193,14 @@ svm_result <- predict(svm_model, newdata = valid[,!colnames(valid) %in% c("quali
 
 confusionMatrix(valid$quality,svm_result)
 rm(svm_model, svm_result)
+```
 
+
+******
+# xgboost
+******
+
+```{r results='hide', message=FALSE, warning=FALSE}
 # xgboost
 data.train <- xgb.DMatrix(data = data.matrix(train[, !colnames(valid) %in% c("quality")]), label = train$quality)
 data.valid <- xgb.DMatrix(data = data.matrix(valid[, !colnames(valid) %in% c("quality")]))
@@ -116,8 +233,14 @@ xgb_pred <- predict(xgb_model, data.valid)
 
 confusionMatrix(as.factor(xgb_pred+2), valid$quality)
 rm(xgb_model, xgb_pred, data.train, data.valid, parameters)
+```
 
 
+******
+# h2o (deeplearning)
+******
+
+```{r results='hide', message=FALSE, warning=FALSE}
 # h2o
 h2o.init()
 h2o.train <- as.h2o(train)
@@ -143,3 +266,10 @@ h2o.predictions <- h2o.predict(h2o.model, h2o.valid) %>% as.data.frame()
 
 confusionMatrix(h2o.predictions$predict, valid$quality)
 rm(h2o.model, h2o.train, h2o.valid, h2o.predictions)
+```
+
+******
+# Conclusion
+******
+
+As I expected, xgboost give the best outcome but an ensemble model might potential give improved result.
