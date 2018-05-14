@@ -51,16 +51,17 @@ If you have any question, please leave a comment and if you like the kernel, ple
 ## Load Packages
 ******
 
-```{r results='hide', message=FALSE, warning=FALSE}
-if(!require(pacman)) install.packages(pacman)
-pacman::p_load(tidyverse, skimr, GGally, corrplot, plotly, viridis, caret, randomForest, e1071, rpart, rattle, xgboost, h2o)
+```{r  message=FALSE, warning=FALSE}
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(tidyverse, skimr, GGally, plotly, viridis, caret, randomForest, e1071, rpart, xgboost, h2o, corrplot)
+#pacman::p_load(tidyverse, skimr, GGally, corrplot, plotly, viridis, caret, randomForest, e1071, rpart, rattle, xgboost, h2o)
 ```
 
 ******
 ## Load Dataset
 ******
 
-```{r results='hide', message=FALSE, warning=FALSE}
+```{r  message=FALSE, warning=FALSE}
 wine <- read_csv("winequality-red.csv")
 ```
 
@@ -72,7 +73,7 @@ wine <- read_csv("winequality-red.csv")
 ## First Glimpse via skim
 ******
 
-```{r results='hide', message=FALSE, warning=FALSE}
+```{r  message=FALSE, warning=FALSE}
 wine %>% skim() %>% kable()
 ```
 
@@ -81,7 +82,7 @@ wine %>% skim() %>% kable()
 ******
 
 
-```{r results='hide', message=FALSE, warning=FALSE}
+```{r  message=FALSE, warning=FALSE}
 wine %>% cor() %>% corrplot.mixed(upper = "ellipse", tl.cex=.8, tl.pos = 'lt', number.cex = .8)
 ```
 
@@ -90,7 +91,7 @@ wine %>% cor() %>% corrplot.mixed(upper = "ellipse", tl.cex=.8, tl.pos = 'lt', n
 ******
 
 
-```{r results='hide', message=FALSE, warning=FALSE}
+```{r  message=FALSE, warning=FALSE}
 colnames(wine) <- wine %>% colnames() %>% str_replace_all(" ","_")
 wine$quality <- as.factor(wine$quality)
 ```
@@ -103,7 +104,7 @@ I have had a quick look and found the following variables: residual\_sugar, free
 Therefore, these variables are not included in the ggpairs model. Further, I found volatile_acidity, sulphates, and alcohol have more significate different across different quality based on the graph below. 
 
 
-```{r results='hide', message=FALSE, warning=FALSE}
+```{r  message=FALSE, warning=FALSE}
 wine %>% 
   mutate(quality = as.factor(quality)) %>% 
   select(-c(residual_sugar, free_sulfur_dioxide, total_sulfur_dioxide, chlorides)) %>% 
@@ -118,7 +119,7 @@ wine %>%
 # Ployly 3D Interactive Graph
 ******
 
-```{r results='hide', message=FALSE, warning=FALSE}
+```{r  message=FALSE, warning=FALSE}
 wine %>% 
   plot_ly(x=~alcohol,y=~volatile_acidity,z= ~sulphates, color=~quality, hoverinfo = 'text', colors = viridis(3),
           text = ~paste('Quality:', quality,
@@ -137,7 +138,7 @@ wine %>%
 # Cross Validation Setup
 ******
 
-```{r results='hide', message=FALSE, warning=FALSE}
+```{r  message=FALSE, warning=FALSE}
 set.seed(1)
 inTrain <- createDataPartition(wine$quality, p=.9, list = F)
 
@@ -150,13 +151,13 @@ rm(inTrain)
 # Decision Tree via rpart
 ******
 
-```{r results='hide', message=FALSE, warning=FALSE}
+```{r  message=FALSE, warning=FALSE}
 # rpart
 set.seed(1)
 rpart_model <- rpart(quality~alcohol+volatile_acidity+citric_acid+
                    density+pH+sulphates, train)
 
-fancyRpartPlot(rpart_model)
+#fancyRpartPlot(rpart_model)
 
 rpart_result <- predict(rpart_model, newdata = valid[,!colnames(valid) %in% c("quality")],type='class')
 
@@ -168,7 +169,7 @@ rm(rpart_model, rpart_result)
 # Random Forest
 ******
 
-```{r results='hide', message=FALSE, warning=FALSE}
+```{r  message=FALSE, warning=FALSE}
 # randomforest
 set.seed(1)
 rf_model <- randomForest(quality~alcohol+volatile_acidity+citric_acid+
@@ -184,7 +185,7 @@ rm(rf_model, rf_result)
 # SVM
 ******
 
-```{r results='hide', message=FALSE, warning=FALSE}
+```{r  message=FALSE, warning=FALSE}
 # svm
 set.seed(1)
 svm_model <- svm(quality~alcohol+volatile_acidity+citric_acid+
@@ -200,7 +201,7 @@ rm(svm_model, svm_result)
 # xgboost
 ******
 
-```{r results='hide', message=FALSE, warning=FALSE}
+```{r  message=FALSE, warning=FALSE}
 # xgboost
 data.train <- xgb.DMatrix(data = data.matrix(train[, !colnames(valid) %in% c("quality")]), label = train$quality)
 data.valid <- xgb.DMatrix(data = data.matrix(valid[, !colnames(valid) %in% c("quality")]))
@@ -240,7 +241,7 @@ rm(xgb_model, xgb_pred, data.train, data.valid, parameters)
 # h2o (deeplearning)
 ******
 
-```{r results='hide', message=FALSE, warning=FALSE}
+```{r  message=FALSE, warning=FALSE}
 # h2o
 h2o.init()
 h2o.train <- as.h2o(train)
