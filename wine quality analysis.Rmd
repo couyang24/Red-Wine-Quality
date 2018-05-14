@@ -201,6 +201,7 @@ rm(rpart_model, rpart_result)
 Even without any tuning, randome forest produce a much improved result than the decision tree model.
 
 
+
 ```{r  message=FALSE, warning=FALSE}
 # randomforest
 set.seed(1)
@@ -209,6 +210,13 @@ rf_model <- randomForest(quality~alcohol+volatile_acidity+citric_acid+
 rf_result <- predict(rf_model, newdata = valid[,!colnames(valid) %in% c("quality")])
 
 confusionMatrix(valid$quality,rf_result)
+```
+
+
+After reviewing the result, let's look at which variable contributes the most.
+
+
+```{r  message=FALSE, warning=FALSE}
 varImp(rf_model) %>% kable()
 varImpPlot(rf_model)
 rm(rf_model, rf_result)
@@ -218,6 +226,10 @@ rm(rf_model, rf_result)
 ******
 # SVM
 ******
+
+
+SVM provides an alternative solution; however, the result is not outstanding.
+
 
 ```{r  message=FALSE, warning=FALSE}
 # svm
@@ -235,6 +247,10 @@ rm(svm_model, svm_result)
 # xgboost
 ******
 
+
+xgboost with a little bit hyper-parameter tuning achieved the best result among the models so far. 
+
+
 ```{r  message=FALSE, warning=FALSE}
 # xgboost
 data.train <- xgb.DMatrix(data = data.matrix(train[, !colnames(valid) %in% c("quality")]), label = train$quality)
@@ -243,18 +259,18 @@ data.valid <- xgb.DMatrix(data = data.matrix(valid[, !colnames(valid) %in% c("qu
 
 parameters <- list(
   # General Parameters
-  booster            = "gbtree",          # default = "gbtree"
-  silent             = 0,                 # default = 0
+  booster            = "gbtree",      
+  silent             = 0,           
   # Booster Parameters
-  eta                = 0.2,               # default = 0.2, range: [0,1]
-  gamma              = 0,                 # default = 0,   range: [0,???]
-  max_depth          = 5,                 # default = 5,   range: [1,???]
-  min_child_weight   = 2,                 # default = 2,   range: [0,???]
-  subsample          = 1,                 # default = 1,   range: (0,1]
-  colsample_bytree   = 1,                 # default = 1,   range: (0,1]
-  colsample_bylevel  = 1,                 # default = 1,   range: (0,1]
-  lambda             = 1,                 # default = 1
-  alpha              = 0,                 # default = 0
+  eta                = 0.2,              
+  gamma              = 0,                 
+  max_depth          = 5,                
+  min_child_weight   = 2,            
+  subsample          = 1,                 
+  colsample_bytree   = 1,                
+  colsample_bylevel  = 1,          
+  lambda             = 1,    
+  alpha              = 0,       
   # Task Parameters
   objective          = "multi:softmax",   # default = "reg:linear"
   eval_metric        = "merror",
@@ -274,6 +290,10 @@ rm(xgb_model, xgb_pred, data.train, data.valid, parameters)
 ******
 # h2o (deeplearning)
 ******
+
+
+h2o is one of the easiest tool to apply deep learning model; however, due to the size of the dataset, the deep learning does not outperform the xgboost model. 
+
 
 ```{r results='hide', message=FALSE, warning=FALSE}
 # h2o
@@ -309,4 +329,7 @@ rm(h2o.model, h2o.train, h2o.valid, h2o.predictions)
 # Conclusion
 ******
 
-As I expected, xgboost give the best outcome but an ensemble model might potential give improved result.
+As I expected, xgboost give the best outcome among all the models in this kernel. A better hyper-parameter tuned xgboost model/ lightgbm would potientially produce a better result. Additionalluy, an ensemble model might also potentially give improved result.
+
+
+If you have any question, please leave a comment and if you like the kernel, please give a upvote~ Thanks!
