@@ -53,7 +53,7 @@ If you have any question, please leave a comment and if you like the kernel, ple
 
 ```{r  message=FALSE, warning=FALSE}
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(tidyverse, skimr, GGally, plotly, viridis, caret, randomForest, e1071, rpart, xgboost, h2o, corrplot)
+pacman::p_load(tidyverse, skimr, GGally, plotly, viridis, caret, randomForest, e1071, rpart, xgboost, h2o, corrplot, rpart.plot)
 #pacman::p_load(tidyverse, skimr, GGally, corrplot, plotly, viridis, caret, randomForest, e1071, rpart, rattle, xgboost, h2o)
 ```
 
@@ -73,6 +73,10 @@ wine <- read_csv("winequality-red.csv")
 ## First Glimpse via skim
 ******
 
+
+skim would give you the outlook of the dataset, number of observations, number of columns, the range of the variables, number of missing/ unique values, the histogram, etc.
+
+
 ```{r  message=FALSE, warning=FALSE}
 wine %>% skim() %>% kable()
 ```
@@ -82,6 +86,9 @@ wine %>% skim() %>% kable()
 ******
 
 
+Corrplot would give you a overview of the correlation between all the variables. It is better to know the relationship in the very beginning of your analysis.
+
+
 ```{r  message=FALSE, warning=FALSE}
 wine %>% cor() %>% corrplot.mixed(upper = "ellipse", tl.cex=.8, tl.pos = 'lt', number.cex = .8)
 ```
@@ -89,6 +96,9 @@ wine %>% cor() %>% corrplot.mixed(upper = "ellipse", tl.cex=.8, tl.pos = 'lt', n
 ******
 # Preprocess
 ******
+
+
+**Correct column names** and **Turn quality variable into factor**
 
 
 ```{r  message=FALSE, warning=FALSE}
@@ -104,11 +114,15 @@ I have had a quick look and found the following variables: residual\_sugar, free
 Therefore, these variables are not included in the ggpairs model. Further, I found volatile_acidity, sulphates, and alcohol have more significate different across different quality based on the graph below. 
 
 
+The rest of the variables are showing some difference; however, the difference among different quality is not significant enough to determine all the quality directly by using one variable. 
+In the following EDA, I leverage the power of plotly to produce a 3D interactive graph to visually see different quality at different alcohol, volatile acidity, and sulphates levels. I am expecting that we will see the trend to some extent but should not be able to directly identify the quality by using the graph.
+
+
 ```{r  message=FALSE, warning=FALSE}
 wine %>% 
   mutate(quality = as.factor(quality)) %>% 
   select(-c(residual_sugar, free_sulfur_dioxide, total_sulfur_dioxide, chlorides)) %>% 
-  ggpairs(aes(color = quality,alpha=0.4),
+  ggpairs(aes(color = quality, alpha=0.4),
           columns=1:7,
           lower=list(continuous="points"),
           upper=list(continuous="blank"),
@@ -118,6 +132,12 @@ wine %>%
 ******
 # Ployly 3D Interactive Graph
 ******
+
+The graph is consistent with my expectation. The combination of the three variables could help us to some extent but we are still not able to identify the quality clearly. This calls for machine learning.
+
+
+I am going to conduct the machine learning part with different models and cross validation to check which model produce the best result.
+
 
 ```{r  message=FALSE, warning=FALSE}
 wine %>% 
@@ -151,23 +171,35 @@ rm(inTrain)
 # Decision Tree via rpart
 ******
 
+
+The rpart plot shows alcohol, volatile acidity, and sulphates are important variables to determine the quality, which is consistent with the explorational data analysis.
+
+
+
 ```{r  message=FALSE, warning=FALSE}
 # rpart
 set.seed(1)
 rpart_model <- rpart(quality~alcohol+volatile_acidity+citric_acid+
                    density+pH+sulphates, train)
 
+rpart.plot(rpart_model)
 #fancyRpartPlot(rpart_model)
 
 rpart_result <- predict(rpart_model, newdata = valid[,!colnames(valid) %in% c("quality")],type='class')
 
 confusionMatrix(valid$quality,rpart_result)
+varImp(rpart_model) %>% kable()
+varImpPlot(rpart_model)
 rm(rpart_model, rpart_result)
 ```
 
 ******
 # Random Forest
 ******
+
+
+Even without any tuning, randome forest produce a much improved result than the decision tree model.
+
 
 ```{r  message=FALSE, warning=FALSE}
 # randomforest
@@ -177,6 +209,8 @@ rf_model <- randomForest(quality~alcohol+volatile_acidity+citric_acid+
 rf_result <- predict(rf_model, newdata = valid[,!colnames(valid) %in% c("quality")])
 
 confusionMatrix(valid$quality,rf_result)
+varImp(rf_model) %>% kable()
+varImpPlot(rf_model)
 rm(rf_model, rf_result)
 ```
 
@@ -241,7 +275,7 @@ rm(xgb_model, xgb_pred, data.train, data.valid, parameters)
 # h2o (deeplearning)
 ******
 
-```{r  message=FALSE, warning=FALSE}
+```{r results='hide', message=FALSE, warning=FALSE}
 # h2o
 h2o.init()
 h2o.train <- as.h2o(train)
@@ -264,7 +298,9 @@ h2o.model <- h2o.deeplearning(x = setdiff(names(train), c("quality")),
 )
 
 h2o.predictions <- h2o.predict(h2o.model, h2o.valid) %>% as.data.frame()
+```
 
+```{r message=FALSE, warning=FALSE}
 confusionMatrix(h2o.predictions$predict, valid$quality)
 rm(h2o.model, h2o.train, h2o.valid, h2o.predictions)
 ```
