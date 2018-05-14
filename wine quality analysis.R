@@ -64,6 +64,9 @@ fancyRpartPlot(rpart_model)
 rpart_result <- predict(rpart_model, newdata = valid[,!colnames(valid) %in% c("quality")],type='class')
 
 confusionMatrix(valid$quality,rpart_result)
+
+varImp(rpart_model)
+
 rm(rpart_model, rpart_result)
 
 # randomforest
@@ -73,6 +76,9 @@ rf_model <- randomForest(quality~alcohol+volatile_acidity+citric_acid+
 rf_result <- predict(rf_model, newdata = valid[,!colnames(valid) %in% c("quality")])
 
 confusionMatrix(valid$quality,rf_result)
+
+importance(rf_model)
+
 rm(rf_model, rf_result)
 
 # svm
