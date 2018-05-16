@@ -33,6 +33,8 @@ wine %>% cor() %>% corrplot.mixed(upper = "ellipse", tl.cex=.8, tl.pos = 'lt', n
 
 wine$quality <- as.factor(wine$quality)
 
+wine %>% corrgram(lower.panel=panel.shade, upper.panel=panel.ellipse)
+
 wine %>% 
   plot_ly(x=~alcohol,y=~volatile_acidity,z= ~sulphates, color=~quality, hoverinfo = 'text', colors = viridis(3),
           text = ~paste('Quality:', quality,
