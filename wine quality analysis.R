@@ -9,6 +9,7 @@ library(randomForest)
 library(e1071)
 library(rpart)
 library(rattle)
+library(rpart.plot)
 library(xgboost)
 library(h2o)
 
@@ -61,13 +62,15 @@ set.seed(1)
 rpart_model <- rpart(quality~alcohol+volatile_acidity+citric_acid+
                    density+pH+sulphates, train)
 
-fancyRpartPlot(rpart_model)
+rpart.plot(rpart_model)
+
+# fancyRpartPlot(rpart_model)
 
 rpart_result <- predict(rpart_model, newdata = valid[,!colnames(valid) %in% c("quality")],type='class')
 
 confusionMatrix(valid$quality,rpart_result)
 
-varImp(rpart_model)
+varImp(rpart_model) %>% kable()
 
 rm(rpart_model, rpart_result)
 
@@ -79,7 +82,9 @@ rf_result <- predict(rf_model, newdata = valid[,!colnames(valid) %in% c("quality
 
 confusionMatrix(valid$quality,rf_result)
 
-importance(rf_model)
+varImp(rf_model) %>% kable()
+
+varImpPlot(rf_model)
 
 rm(rf_model, rf_result)
 
