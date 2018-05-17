@@ -32,6 +32,8 @@ wine %>%
 
 wine %>% cor() %>% corrplot.mixed(upper = "ellipse", tl.cex=.8, tl.pos = 'lt', number.cex = .8)
 
+wine %>% corrgram(lower.panel=panel.shade, upper.panel=panel.ellipse)
+
 wine$quality <- as.factor(wine$quality)
 
 wine %>% 
@@ -100,33 +102,59 @@ data.train <- xgb.DMatrix(data = data.matrix(train[, !colnames(valid) %in% c("qu
 data.valid <- xgb.DMatrix(data = data.matrix(valid[, !colnames(valid) %in% c("quality")]))
 
 
-parameters <- list(
-  # General Parameters
-  booster            = "gbtree",          # default = "gbtree"
-  silent             = 0,                 # default = 0
-  # Booster Parameters
-  eta                = 0.2,               # default = 0.2, range: [0,1]
-  gamma              = 0,                 # default = 0,   range: [0,???]
-  max_depth          = 5,                 # default = 5,   range: [1,???]
-  min_child_weight   = 2,                 # default = 2,   range: [0,???]
-  subsample          = 1,                 # default = 1,   range: (0,1]
-  colsample_bytree   = 1,                 # default = 1,   range: (0,1]
-  colsample_bylevel  = 1,                 # default = 1,   range: (0,1]
-  lambda             = 1,                 # default = 1
-  alpha              = 0,                 # default = 0
-  # Task Parameters
-  objective          = "multi:softmax",   # default = "reg:linear"
-  eval_metric        = "merror",
-  num_class          = 7,
-  seed               = 1               # reproducability seed
-)
+finalresult <- data.frame()
 
-xgb_model <- xgb.train(parameters, data.train, nrounds = 100)
+for(j in 1:10){
+  result_list <- vector()
+  for(i in 1:100){
+    parameters <- list(
+      # General Parameters
+      booster            = "gbtree",          # default = "gbtree"
+      silent             = 0,                 # default = 0
+      # Booster Parameters
+      eta                = 0.1,               # default = 0.2, range: [0,1]
+      gamma              = j/10,                 # default = 0,   range: [0,???]
+      max_depth          = 8,                 # default = 5,   range: [1,???]
+      min_child_weight   = 2,                 # default = 2,   range: [0,???]
+      subsample          = .8,                 # default = 1,   range: (0,1]
+      colsample_bytree   = .8,                 # default = 1,   range: (0,1]
+      colsample_bylevel  = 1,                 # default = 1,   range: (0,1]
+      lambda             = 1,                 # default = 1
+      alpha              = 0,                 # default = 0
+      # Task Parameters
+      objective          = "multi:softmax",   # default = "reg:linear"
+      eval_metric        = "merror",
+      num_class          = 7,
+      seed               = 1               # reproducability seed
+    )
+  
+  xgb_model <- xgb.train(parameters, data.train, nrounds = 100)
+  
+  xgb_pred <- predict(xgb_model, data.valid)
+  
+  (result <- confusionMatrix(as.factor(xgb_pred+2), valid$quality))
+  
+  result_list[i] <- result$overall[1]
+  
+  rm(xgb_model, xgb_pred, parameters)
+  }
+  finalresult[j,1] <- result_list %>% mean()
+}
 
-xgb_pred <- predict(xgb_model, data.valid)
+finalresult
 
-confusionMatrix(as.factor(xgb_pred+2), valid$quality)
+
+
+
+
+
+
+
+
 rm(xgb_model, xgb_pred, data.train, data.valid, parameters)
+
+
+
 
 
 # h2o
