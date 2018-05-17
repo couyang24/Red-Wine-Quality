@@ -114,12 +114,12 @@ for(j in 1:10){
       booster            = "gbtree",          # default = "gbtree"
       silent             = 0,                 # default = 0
       # Booster Parameters
-      eta                = 0.1,               # default = 0.2, range: [0,1]
-      gamma              = j/10,                 # default = 0,   range: [0,???]
+      eta                = .08,               # default = 0.2, range: [0,1]
+      gamma              = .7,                 # default = 0,   range: [0,???]
       max_depth          = 8,                 # default = 5,   range: [1,???]
       min_child_weight   = 2,                 # default = 2,   range: [0,???]
-      subsample          = .8,                 # default = 1,   range: (0,1]
-      colsample_bytree   = .8,                 # default = 1,   range: (0,1]
+      subsample          = .9,                 # default = 1,   range: (0,1]
+      colsample_bytree   = .5,                 # default = 1,   range: (0,1]
       colsample_bylevel  = 1,                 # default = 1,   range: (0,1]
       lambda             = 1,                 # default = 1
       alpha              = 0,                 # default = 0
